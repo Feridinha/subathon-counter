@@ -22,7 +22,7 @@ const PageContainer = styled.div`
     height: 100%;
     padding: 0 0.5rem;
     font-size: 2rem;
-    background-color: #ffffff30;
+    /* background-color: #ffffff30; */
     overflow: hidden;
 
     span.name {
