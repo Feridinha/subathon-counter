@@ -219,7 +219,7 @@ export default function Home() {
                     initial={{ x: size.width + 15 }}
                     animate={{
                         // x: 105,
-                        y: [5, -size.height],
+                        y: [30, -size.height],
                         opacity: [1, 0],
                     }}
                     transition={{
