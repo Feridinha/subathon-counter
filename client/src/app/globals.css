@@ -1,0 +1,24 @@
+*,
+::before,
+::after {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+    color: #ffffff;
+    font-family: "Inter", sans-serif;
+}
+
+body,
+html {
+    background: black !important;
+}
+
+
+body {
+    height: 100vh;
+}
+
+:root {
+    --font-size: 3vh;
+    font-size: var(--font-size);
+}
