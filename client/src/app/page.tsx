@@ -1,10 +1,6 @@
 "use client"
 import useSocket from "@/app/hooks/useSocket"
 // import useCountdown from "@bradgarropy/use-countdown"
-import { motion } from "framer-motion"
-import { useCallback, useEffect, useRef, useState } from "react"
-import useMeasure from "react-use-measure"
-import styled from "styled-components"
 import {
     ApiCheer,
     ApiDonation,
@@ -12,6 +8,10 @@ import {
     ApiSub,
     ApiSubGift,
 } from "@/responses"
+import { AnimatePresence, motion } from "framer-motion"
+import { useEffect, useRef, useState } from "react"
+import useMeasure from "react-use-measure"
+import styled from "styled-components"
 
 import useCountDown from "react-countdown-hook"
 
@@ -27,6 +27,10 @@ const PageContainer = styled.div`
 
     span.name {
         text-shadow: #ffffff3d 1px 0 5px;
+    }
+
+    p.notice {
+        position: absolute;
     }
 `
 
@@ -45,20 +49,20 @@ interface Event {
 
 const interval = 1000
 
-const getMinutes = (d: number) => 60 * 1000 * d
-
 export default function Home() {
     let [timeLeft, { start, pause, resume, reset }] = useCountDown(0, interval)
-
+    const [hasEnded, setHasEnded] = useState(false)
     const [ref, size] = useMeasure()
     const socket = useSocket()
     const [events, setEvents] = useState<Event[]>([])
     const timeRef = useRef(timeLeft)
-
+    const [isPaused, setPaused] = useState(false)
+    const isPausedRef = useRef(isPaused)
     // const addMinutesToTimer = (minutes: number) => {
     //     const ms = getMinutes(minutes)
     //     start(timeRef.current + ms)
     // }
+    isPausedRef.current = isPaused
 
     const addEvent = (newEvent: Event) => {
         setEvents((oldEvents) => [...oldEvents, newEvent])
@@ -162,10 +166,17 @@ export default function Home() {
 
     const handleTime = (time: number) => {
         start(time)
+        if(isPausedRef.current) {
+            pause()
+        }
     }
 
     const handleReload = () => {
         window.location.reload()
+    }
+
+    const handlePauseStatus = (newValue: boolean) => {
+        setPaused(newValue)
     }
 
     useEffect(() => {
@@ -177,7 +188,9 @@ export default function Home() {
         socket.on("time", handleTime)
         socket.on("forced-time", handleForcedTime)
         socket.on("reload", handleReload)
+        socket.on("pause-status", handlePauseStatus)
         socket.emit("get-time")
+        socket.emit("get-pause-status")
         return () => {
             socket.off("donation", handleDonation)
             socket.off("sub", handleSub)
@@ -186,12 +199,22 @@ export default function Home() {
             socket.off("time", handleTime)
             socket.off("forced-time", handleForcedTime)
             socket.off("reload", handleReload)
+            socket.off("pause-status", handlePauseStatus)
         }
     }, [socket])
 
     useEffect(() => {
+        if (timeLeft === 0 && timeRef.current !== 0) {
+            setHasEnded(true)
+        }
         timeRef.current = timeLeft
     }, [timeLeft])
+
+    useEffect(() => {
+        if (!socket) return
+        if (isPaused) return pause()
+        socket!.emit("get-time")
+    }, [isPaused, socket])
 
     function msToTime(duration: number) {
         let seconds = Math.floor((duration / 1000) % 60)
@@ -206,11 +229,33 @@ export default function Home() {
         return hoursFormatted + ":" + minutesFormatted + ":" + secondsFormatted
     }
 
+    const shouldShowTimer = socket && !hasEnded
+    const shouldShowPausedNotice = shouldShowTimer && isPaused
+
     return (
         <PageContainer>
+            <AnimatePresence>
+                {shouldShowPausedNotice && (
+                    <motion.p
+                        className="notice"
+                        initial={{ y: -size.height * 1.5, opacity: 0 }}
+                        animate={{
+                            y: -size.height,
+                            opacity: 1,
+                            translateY: "50%",
+                            marginBottom: "10px",
+                        }}
+                        exit={{ y: -size.height * 1.5, opacity: 0 }}
+                    >
+                        Timer pausado!
+                    </motion.p>
+                )}
+            </AnimatePresence>
+
             <h1 ref={ref}>
                 {!socket && "Carregando..."}
-                {socket && msToTime(timeLeft)}
+                {shouldShowTimer && msToTime(timeLeft)}
+                {hasEnded && "Acabou!"}
             </h1>
             {events.map((event) => (
                 <EventBox
