@@ -3,7 +3,11 @@ import myEnv from "../myEnv"
 
 const client = new tmiJs.Client({
     options: {
-        debug: false,
+        debug: true,
+    },
+    connection: {
+        reconnect: true,
+        secure: true,
     },
     // channels: ["xqc"],
     channels: myEnv.TMI_CHANNELS.split(","),
@@ -127,7 +131,15 @@ client.on("primepaidupgrade", (channel, username, methods, userstate) => {
 // })
 
 client.on("connected", () => {
-    console.log("TMI Connected (fdgt)")
+    console.log("TMI conectado")
+})
+
+client.on("disconnected", () => {
+    console.log("TMI desconectado")
+})
+
+client.on("reconnect", () => {
+    console.log("TMI reconnectado")
 })
 
 // twitch.on("connected", () => {

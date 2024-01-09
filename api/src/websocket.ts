@@ -22,6 +22,10 @@ const registerEvents = () => {
         socket.on("get-time", () => {
             socket.emit("time", timer.getMsLeft())
         })
+
+        socket.on("get-pause-status", () => {
+            socket.emit("pause-status", timer.getPauseStatus())
+        })
     })
     io.on("disconnect", (socket) => {
         openConnectionsCount -= 1
@@ -36,6 +40,7 @@ export type BroadcastArgs =
     | ["subgift", ApiSubGift]
     | ["forced-time", ApiForcedTime]
     | ["reload"]
+    | ["pause-status", boolean]
 
 const queue = new PQueue({
     concurrency: 1,

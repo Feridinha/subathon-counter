@@ -2,6 +2,7 @@ import ms from "parse-duration"
 import { ChatUserstate } from "tmi.js"
 import websocket from "../websocket"
 import timer from "./timer"
+import type { IMultipliers } from "./timer"
 
 const PREFIX = "!"
 
@@ -12,7 +13,8 @@ const handleTimer = (source: string, rawArgs: string[]) => {
     const prettyTime = firstArg.slice(1, firstArg.length)
 
     const msTime = ms(prettyTime)
-    if (typeof msTime !== "number") return console.log("Tempo inválido", prettyTime)
+    if (typeof msTime !== "number")
+        return console.log("Tempo inválido", prettyTime)
 
     switch (operator) {
         case "+":
@@ -33,39 +35,28 @@ const handleTimer = (source: string, rawArgs: string[]) => {
     websocket.sendTime()
 }
 
-const handleReal = (source: string, rawArgs: string[]) => {
-    const prettyTime = rawArgs[0]
-    const msTime = ms(prettyTime)
-    if (!msTime) return console.log("Tempo inválido", prettyTime)
-    const multipliers = timer.getMultipliers()
-    timer.setMultipliers({ ...multipliers, msPerReal: msTime })
+const handleValueChange =
+    (key: keyof IMultipliers) => (source: string, rawArgs: string[]) => {
+        const [value] = rawArgs
+        const msTime = ms(value)
+        if (!msTime) return console.log("Tempo inválido", value)
+        const multipliers = timer.getMultipliers()
+        timer.setMultipliers({ ...multipliers, [key]: msTime })
 
-    console.log("Setei real", msTime, prettyTime)
-}
-
-const handleSub = (source: string, rawArgs: string[]) => {
-    const prettyTime = rawArgs[0]
-    const msTime = ms(prettyTime)
-    if (!msTime) return console.log("Tempo inválido", prettyTime)
-    const multipliers = timer.getMultipliers()
-    timer.setMultipliers({ ...multipliers, msPerSub: msTime })
-
-    console.log("Setei sub", msTime, prettyTime)
-}
-
-const handleBit = (source: string, rawArgs: string[]) => {
-    const prettyTime = rawArgs[0]
-    const msTime = ms(prettyTime)
-    if (!msTime) return console.log("Tempo inválido", prettyTime)
-    const multipliers = timer.getMultipliers()
-    timer.setMultipliers({ ...multipliers, msPerBit: msTime })
-
-    console.log("Setei bit", msTime, prettyTime)
-}
+        console.log("Setei", key, msTime, value)
+    }
 
 const handleReload = () => {
     websocket.broadcast("reload")
 }
+
+const handlePause = () => {
+    timer.togglePause()
+    websocket.broadcast("pause-status", timer.getPauseStatus())
+    console.log("Paused", timer.getPauseStatus())
+}
+
+let whiteListUserIds = ["270082103", "144746469", "94753308"]
 
 const handleMessage = (
     channel: string,
@@ -77,22 +68,27 @@ const handleMessage = (
     if (self || !message.startsWith(PREFIX)) return
 
     const [source, ...args] = message.slice(1).split(/ +/g)
-    const isMod = tags.badges?.broadcaster === "1" || tags.mod
+    const isMod = whiteListUserIds.includes(tags["user-id"]!)
     if (!isMod) return console.log("Usuário não é mod", tags.username!, message)
 
     switch (source) {
         case "timer":
             return handleTimer(source, args)
         case "real":
-            return handleReal(source, args)
+            return handleValueChange("msPerReal")(source, args)
         case "sub":
-            return handleSub(source, args)
+            return handleValueChange("msPerSub")(source, args)
         case "bit":
         case "bits":
-            handleBit(source, args)
+            handleValueChange("msPerBit")(source, args)
             return
         case "reload":
             return handleReload()
+        case "pause":
+        case "stop":
+        case "start":
+            return handlePause()
+
         default:
             return
     }

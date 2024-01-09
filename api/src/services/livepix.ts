@@ -1,8 +1,6 @@
 import { WebSocket } from "ws"
 import myEnv from "../myEnv"
 
-const ws = new WebSocket(`wss://pubsub.livepix.gg/ws`)
-
 export type DonationData = ShowNotificationMessage["payload"]["data"]["data"]
 
 const getFuckingToken = async (widgetId: string) => {
@@ -89,12 +87,6 @@ interface MessageWrapper<T extends AvailableEvents> {
     message: T
 }
 
-const sendMessage = (message: Object) => {
-    const json = JSON.stringify(message)
-    const buffer = Buffer.from(json)
-    ws.send(buffer)
-}
-
 const getSubscribeMessage = (payload: string) => {
     const result = {
         message: {
@@ -119,27 +111,16 @@ const getAuthMessage = (token: string) => {
     return result
 }
 
-ws.onopen = async () => {
-    console.log("Websocket conectado")
-    const widgetId = myEnv.LIVEPIX_WIDGET_ID
-    const token = await getFuckingToken(widgetId)
-    const authMessage = getAuthMessage(token)
-
-    sendMessage(authMessage)
-
-    const message1 = getSubscribeMessage(`widget:${widgetId}`)
-    sendMessage(message1)
-    console.log("Websocket logado")
-}
-
-ws.onclose = () => {
-    console.log("websocket fechado")
-}
-
 type DonationCallback = (donation: DonationData) => void
 let onDonation: null | DonationCallback = null
 
-ws.on("message", (event) => {
+const sendMessage = (ws: WebSocket, message: Object) => {
+    const json = JSON.stringify(message)
+    const buffer = Buffer.from(json)
+    ws.send(buffer)
+}
+
+const handleConection = (ws: WebSocket) => (event: any) => {
     const data: MessageWrapper<AvailableEvents> = JSON.parse(event.toString())
     const { message } = data
 
@@ -153,7 +134,7 @@ ws.on("message", (event) => {
                     time: Math.round(new Date().getTime() / 1000),
                 },
             }
-            sendMessage(pongMessage)
+            sendMessage(ws, pongMessage)
             break
 
         case "notification:show":
@@ -167,15 +148,40 @@ ws.on("message", (event) => {
                     time: Math.round(new Date().getTime() / 1000),
                 },
             }
-            sendMessage(confirmationMessage)
+            sendMessage(ws, confirmationMessage)
             if (onDonation) onDonation(donation)
     }
-})
+}
+
+const startConnection = () => {
+    const ws = new WebSocket(`wss://pubsub.livepix.gg/ws`)
+
+    ws.onopen = async () => {
+        console.log("Websocket conectado")
+        const widgetId = myEnv.LIVEPIX_WIDGET_ID
+        const token = await getFuckingToken(widgetId)
+        const authMessage = getAuthMessage(token)
+
+        sendMessage(ws, authMessage)
+
+        const message1 = getSubscribeMessage(`widget:${widgetId}`)
+        sendMessage(ws, message1)
+        console.log("Websocket logado")
+    }
+
+    ws.onclose = () => {
+        console.log("websocket fechado")
+        startConnection()
+    }
+
+    ws.on("message", handleConection(ws))
+}
 
 const livepix = {
     setDonationCallback: (callback: DonationCallback) => {
         onDonation = callback
     },
+    startConnection
 }
 
 export default livepix

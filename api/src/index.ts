@@ -38,6 +38,8 @@ livepix.setDonationCallback((donation) => {
     websocket.broadcast("donation", donation satisfies ApiDonation)
 })
 
+livepix.startConnection()
+
 tmi.setBitsCallback((bits) => {
     const cheerEvent = {
         amount: bits.bitsAmount,
@@ -92,7 +94,12 @@ tmi.getClient().on("message", commands.handleMessage)
 tmi.connect()
 
 const saveData = async () => {
-    await storage.write({ ...timer.getMultipliers(), timeLeft: timer.getMsLeft() })
+    await storage.write({
+        ...timer.getMultipliers(),
+        timeLeft: timer.getMsLeft(),
+        isPaused: timer.getPauseStatus(),
+        lastTimePaused: timer.getLastPauseTime(),
+    })
     setTimeout(saveData, 1000)
 }
 

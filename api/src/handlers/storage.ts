@@ -1,11 +1,12 @@
 import fs from "fs/promises"
 import type { IMultipliers } from "./timer"
-import type { BroadcastArgs } from "../websocket"
 
 const FILENAME = "storage.json"
 
 interface StorageData extends IMultipliers {
     timeLeft: number
+    isPaused: boolean
+    lastTimePaused?: number
 }
 
 let storageData: StorageData = {
@@ -13,12 +14,14 @@ let storageData: StorageData = {
     msPerReal: 1 * 60000, // 60000 = 1 minute
     msPerSub: 5 * 60000,
     timeLeft: 0,
+    isPaused: false,
+    lastTimePaused: 0,
 }
 
 const read = async () => {
     try {
         const data = await fs.readFile(FILENAME, "utf-8")
-        storageData = JSON.parse(data)
+        storageData = { ...storageData, ...JSON.parse(data) }
         return storageData
     } catch (error: any) {
         console.error(error)
