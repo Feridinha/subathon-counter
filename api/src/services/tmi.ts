@@ -3,7 +3,7 @@ import myEnv from "../myEnv"
 
 const client = new tmiJs.Client({
     options: {
-        debug: true,
+        debug: false,
     },
     connection: {
         reconnect: true,
