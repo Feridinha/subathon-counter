@@ -31,9 +31,25 @@ import livepix from "./services/livepix"
 import timer from "./handlers/timer"
 import commands from "./handlers/commands"
 
+// acima de 10, 10%, acima de 50, 25%, acima de 100, 50%
 livepix.setDonationCallback((donation) => {
     console.log("Callback", donation)
-    timer.addMs(donation.amount.value * timer.getMultipliers().msPerReal)
+    let ratio = 1
+
+    if (donation.amount.value >= 100) {
+        ratio = 1.5
+    } else if (donation.amount.value >= 50) {
+        ratio = 1.25
+    } else if (donation.amount.value >= 10) {
+        ratio = 1.1
+    } else {
+        ratio = 1
+    }
+    
+    console.log({ amount: donation.amount.value, ratio })
+    timer.addMs(
+        Number(donation.amount.value * timer.getMultipliers().msPerReal) * ratio
+    )
     websocket.sendTime()
     websocket.broadcast("donation", donation satisfies ApiDonation)
 })
