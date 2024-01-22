@@ -1,5 +1,6 @@
 # Subathon Counter
-Um contador de subathon que considera subs e bits da Twitch, além de doações por pix.
+Um contador de subathon que considera subs e bits da Twitch, além de doações por pix.<br>
+Feito com nextjs, styled-components, typescript e socket.io.
 
 ## Preview
 https://github.com/Feridinha/subathon-counter/assets/75091051/1a3be8f7-aeac-4317-a058-e87b846dc7c4
