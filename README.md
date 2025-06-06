@@ -1,4 +1,7 @@
 # Subathon Counter
+A subathon counter that works with Twitch subs, bits and donations via livepix.gg.
+Made with love using nextjs, styled-components, typescript and socket.io (Also known as the GOAT stack)
+
 Um contador de subathon que considera subs e bits da Twitch, além de doações por pix.<br>
 Feito com nextjs, styled-components, typescript e socket.io.
 
